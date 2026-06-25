@@ -55,6 +55,16 @@
   - Annotation layer for interactive elements
   - Imported required CSS files for proper rendering
 
+- **Enabled PDF features:** 
+  - Simplified rendering without text/annotation layers (to avoid CSS import issues in react-pdf v10)
+  - Clean PDF display with proper loading states
+
+## Known Limitations
+
+- Text selection in PDFs is currently disabled due to react-pdf v10 CSS compatibility
+- Annotation layers are not rendered for cleaner display
+- If you need these features, consider downgrading to react-pdf v9 or installing additional dependencies
+
 ## Testing Recommendations
 
 1. **Test Profile Navigation:**

@@ -4,11 +4,8 @@ import { ArrowLeft, ArrowRight, X, Lock, Crown, ZoomIn, ZoomOut } from 'lucide-r
 import { MagazineIssue, AppView } from '../types';
 import { useSubscription } from '../context/SubscriptionContext';
 
-// Set up PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString();
+// Set up PDF.js worker - use CDN to ensure version compatibility
+pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface PDFReaderProps {
   issue: MagazineIssue;
