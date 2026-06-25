@@ -2,6 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, TrendingUp, Sparkles, FolderOpen, Send, CheckCircle2, BookOpen, Layers, Info, X } from 'lucide-react';
 import { MagazineIssue, AppView } from '../types';
 import { useMagazineData } from '../hooks/useMagazineData';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+// Register GSAP plugins
+gsap.registerPlugin(ScrollTrigger);
 
 interface PublicReaderProps {
   issues: MagazineIssue[];
@@ -19,17 +24,14 @@ export default function PublicReader({ issues, searchQuery, onViewChange, onSele
   const [legalModalText, setLegalModalText] = useState<string | null>(null);
   const { latestIssue, loading, error } = useMagazineData();
 
+  // Refs for GSAP animations
+  const heroRef = useRef<HTMLDivElement>(null);
+  const coverRef = useRef<HTMLDivElement>(null);
+  const trendingCardsRef = useRef<HTMLDivElement>(null);
+
   // Custom cursor follower state
   const [mousePos, setMousePos] = useState({ x: -100, y: -100 });
   const [cursorText, setCursorText] = useState('');
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   // Editors Pick slides - dynamically generated from published issues
   const editorsPicks = issues
@@ -41,6 +43,91 @@ export default function PublicReader({ issues, searchQuery, onViewChange, onSele
       title: issue.title,
       img: issue.coverUrl,
     }));
+
+  // Derived trending issues (sorted by numerical view count if possible)
+  const trendingIssues = [...issues]
+    .filter((issue) => issue.status === 'Published')
+    .sort((a, b) => {
+      const vA = parseInt(a.views.replace(/,/g, ''), 10) || 0;
+      const vB = parseInt(b.views.replace(/,/g, ''), 10) || 0;
+      return vB - vA;
+    })
+    .slice(0, 3);
+
+  // Featured Issue is the latest issue, or default to the first issue
+  const featuredIssue = latestIssue || issues.find(i => i.id === '042') || issues[0];
+
+  // GSAP Hero Animation on mount
+  useEffect(() => {
+    if (heroRef.current && coverRef.current && featuredIssue) {
+      const ctx = gsap.context(() => {
+        // Animate hero content
+        gsap.from('.hero-text', {
+          opacity: 0,
+          y: 50,
+          duration: 1,
+          stagger: 0.2,
+          ease: 'power3.out',
+          delay: 0.2
+        });
+
+        // Animate magazine cover with 3D rotation
+        gsap.from(coverRef.current, {
+          opacity: 0,
+          scale: 0.8,
+          rotationY: -30,
+          duration: 1.2,
+          ease: 'power3.out',
+          delay: 0.5
+        });
+
+        // Parallax effect on scroll
+        gsap.to(coverRef.current, {
+          scrollTrigger: {
+            trigger: heroRef.current,
+            start: 'top top',
+            end: 'bottom top',
+            scrub: 1
+          },
+          y: 100,
+          rotationY: 10,
+          ease: 'none'
+        });
+      }, heroRef);
+
+      return () => ctx.revert();
+    }
+  }, [featuredIssue]);
+
+  // GSAP Trending Cards Animation
+  useEffect(() => {
+    if (trendingCardsRef.current) {
+      const ctx = gsap.context(() => {
+        gsap.from('.trending-card', {
+          scrollTrigger: {
+            trigger: trendingCardsRef.current,
+            start: 'top 80%',
+            toggleActions: 'play none none reverse'
+          },
+          opacity: 0,
+          y: 60,
+          stagger: 0.15,
+          duration: 0.8,
+          ease: 'power3.out'
+        });
+      }, trendingCardsRef);
+
+      return () => ctx.revert();
+    }
+  }, [trendingIssues]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (direction === 'left') {
@@ -82,19 +169,6 @@ export default function PublicReader({ issues, searchQuery, onViewChange, onSele
     );
   });
 
-  // Derived trending issues (sorted by numerical view count if possible)
-  const trendingIssues = [...issues]
-    .filter((issue) => issue.status === 'Published')
-    .sort((a, b) => {
-      const vA = parseInt(a.views.replace(/,/g, ''), 10) || 0;
-      const vB = parseInt(b.views.replace(/,/g, ''), 10) || 0;
-      return vB - vA;
-    })
-    .slice(0, 3);
-
-  // Featured Issue is the latest issue, or default to the first issue
-  const featuredIssue = latestIssue || issues.find(i => i.id === '042') || issues[0];
-
   return (
     <>
       {/* Premium Custom Cursor Effect */}
@@ -119,11 +193,11 @@ export default function PublicReader({ issues, searchQuery, onViewChange, onSele
 
       <main className="pt-20 bg-theme text-theme transition-colors duration-300" id="landing-main-stage">
         {/* Editorial Hero Grid Section */}
-        <section className="relative min-h-[calc(100vh-80px)] flex flex-col justify-center overflow-hidden px-6 md:px-[8vw] py-12 md:py-20 border-b border-theme-secondary">
+        <section ref={heroRef} className="relative min-h-[calc(100vh-80px)] flex flex-col justify-center overflow-hidden px-6 md:px-[8vw] py-12 md:py-20 border-b border-theme-secondary">
           <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-stretch">
             
             {/* Left Column: Editorial Directive */}
-            <div className="hidden lg:flex lg:col-span-3 flex-col justify-between border-r border-theme-secondary pr-8 py-2">
+            <div className="hidden lg:flex lg:col-span-3 flex-col justify-between border-r border-theme-secondary pr-8 py-2 hero-text">
               <div>
                 <span className="font-mono text-[10px] text-theme-muted tracking-[0.3em] uppercase block mb-6 font-bold">
                   Editorial Directive
@@ -168,6 +242,7 @@ export default function PublicReader({ issues, searchQuery, onViewChange, onSele
             <div className="lg:col-span-6 flex items-center justify-center py-8 lg:py-0">
               {featuredIssue ? (
                 <div 
+                  ref={coverRef}
                   onClick={() => { onSelectIssue(featuredIssue.id); onViewChange('slider'); }}
                   onMouseEnter={() => setCursorText("READ")}
                   onMouseLeave={() => setCursorText("")}
@@ -190,7 +265,7 @@ export default function PublicReader({ issues, searchQuery, onViewChange, onSele
             </div>
 
             {/* Right Column: Issue Details Dispatch */}
-            <div className="lg:col-span-3 flex flex-col justify-between py-2 lg:pl-8 border-t lg:border-t-0 lg:border-l border-theme-secondary pt-8 lg:pt-0">
+            <div className="lg:col-span-3 flex flex-col justify-between py-2 lg:pl-8 border-t lg:border-t-0 lg:border-l border-theme-secondary pt-8 lg:pt-0 hero-text">
               {loading ? (
                 <div className="space-y-4">
                   <div className="h-4 skeleton-shimmer w-1/2 rounded" />
@@ -274,7 +349,7 @@ export default function PublicReader({ issues, searchQuery, onViewChange, onSele
         </section>
 
         {/* Trending Issues Section */}
-        <section id="trending-section" className="py-24 px-6 md:px-[8vw] border-b border-theme-secondary bg-theme-secondary">
+        <section id="trending-section" ref={trendingCardsRef} className="py-24 px-6 md:px-[8vw] border-b border-theme-secondary bg-theme-secondary">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
             <div>
               <span className="font-mono text-xs text-[#c3f400] tracking-[0.3em] uppercase block mb-3 font-bold">Popular Dispatches</span>
@@ -294,7 +369,7 @@ export default function PublicReader({ issues, searchQuery, onViewChange, onSele
                 onClick={() => { onSelectIssue(issue.id); onViewChange('slider'); }}
                 onMouseEnter={() => setCursorText("READ")}
                 onMouseLeave={() => setCursorText("")}
-                className="group flex flex-col justify-between p-6 border border-theme-secondary bg-theme-card hover:border-[var(--color-accent)]/60 transition-all duration-300 cursor-pointer h-full shadow-theme-sm hover:shadow-theme-md hover:-translate-y-1"
+                className="trending-card group flex flex-col justify-between p-6 border border-theme-secondary bg-theme-card hover:border-[var(--color-accent)]/60 transition-all duration-300 cursor-pointer h-full shadow-theme-sm hover:shadow-theme-md hover:-translate-y-1"
               >
                 <div className="space-y-4">
                   <div className="flex justify-between items-start border-b border-theme-secondary pb-4">
