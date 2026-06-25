@@ -3,8 +3,6 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { ArrowLeft, ArrowRight, X, Lock, Crown, ZoomIn, ZoomOut } from 'lucide-react';
 import { MagazineIssue, AppView } from '../types';
 import { useSubscription } from '../context/SubscriptionContext';
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -218,8 +216,6 @@ export default function PDFReader({ issue, onViewChange }: PDFReaderProps) {
                 <Page
                   pageNumber={currentPage}
                   scale={scale}
-                  renderTextLayer={true}
-                  renderAnnotationLayer={true}
                   loading={
                     <div className="flex items-center justify-center h-[600px] bg-zinc-900 border border-zinc-800">
                       <p className="font-mono text-xs text-zinc-500">Loading page...</p>
