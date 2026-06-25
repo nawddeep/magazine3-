@@ -25,7 +25,7 @@ const DEFAULT_ISSUES: MagazineIssue[] = [
     status: 'Published',
     views: '2,847',
     audience: '2,847',
-    pdfUrl: '/src/data/RTC_Magazine_October_2005.pdf'
+    pdfUrl: '/pdfs/RTC_Magazine_October_2005.pdf'
   },
   {
     id: 'sadhana-mag',
@@ -39,7 +39,7 @@ const DEFAULT_ISSUES: MagazineIssue[] = [
     status: 'Published',
     views: '1,923',
     audience: '1,923',
-    pdfUrl: '/src/data/Sadhana_magazine.pdf'
+    pdfUrl: '/pdfs/Sadhana_magazine.pdf'
   },
   {
     id: 'ellenna-mag',
@@ -53,7 +53,7 @@ const DEFAULT_ISSUES: MagazineIssue[] = [
     status: 'Published',
     views: '3,654',
     audience: '3,654',
-    pdfUrl: '/src/data/ellenna_magazine.pdf'
+    pdfUrl: '/pdfs/ellenna_magazine.pdf'
   }
 ];
 
@@ -98,7 +98,18 @@ export default function App() {
     const saved = localStorage.getItem('vanguard_issues');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsedIssues = JSON.parse(saved);
+        // Update PDF paths if they're using old /src/data paths
+        const updatedIssues = parsedIssues.map((issue: MagazineIssue) => {
+          if (issue.pdfUrl && issue.pdfUrl.startsWith('/src/data/')) {
+            return {
+              ...issue,
+              pdfUrl: issue.pdfUrl.replace('/src/data/', '/pdfs/')
+            };
+          }
+          return issue;
+        });
+        return updatedIssues;
       } catch (e) {
         console.error('Failed to parse cached issues dataset:', e);
       }

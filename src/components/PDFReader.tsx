@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { ArrowLeft, ArrowRight, X, Lock, Crown, ZoomIn, ZoomOut } from 'lucide-react';
 import { MagazineIssue, AppView } from '../types';
 import { useSubscription } from '../context/SubscriptionContext';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
 
 // Set up PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 interface PDFReaderProps {
   issue: MagazineIssue;
@@ -16,10 +21,23 @@ export default function PDFReader({ issue, onViewChange }: PDFReaderProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.2);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const { isSubscribed, canAccessPage, openPremiumModal } = useSubscription();
+
+  // Debug: Log the PDF URL
+  useEffect(() => {
+    console.log('PDF URL:', issue.pdfUrl);
+  }, [issue.pdfUrl]);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
+    setPdfError(null);
+    console.log('PDF loaded successfully. Total pages:', numPages);
+  };
+
+  const onDocumentLoadError = (error: Error) => {
+    console.error('Error loading PDF:', error);
+    setPdfError(`Failed to load PDF: ${error.message}`);
   };
 
   const handlePrevPage = () => {
@@ -174,23 +192,34 @@ export default function PDFReader({ issue, onViewChange }: PDFReaderProps) {
           ) : (
             // PDF Page Display
             <div className="bg-white">
+              {pdfError && (
+                <div className="flex flex-col items-center justify-center h-[600px] w-[450px] bg-zinc-900 border border-red-800 p-6 text-center">
+                  <p className="font-mono text-xs text-red-500 mb-4">Failed to load PDF</p>
+                  <p className="font-mono text-[10px] text-zinc-400">{pdfError}</p>
+                  <p className="font-mono text-[10px] text-zinc-500 mt-4">PDF Path: {pdfUrl}</p>
+                </div>
+              )}
               <Document
                 file={pdfUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={onDocumentLoadError}
                 loading={
                   <div className="flex items-center justify-center h-[600px] w-[450px] bg-zinc-900 border border-zinc-800">
                     <p className="font-mono text-xs text-zinc-500">Loading PDF...</p>
                   </div>
                 }
                 error={
-                  <div className="flex items-center justify-center h-[600px] w-[450px] bg-zinc-900 border border-zinc-800">
-                    <p className="font-mono text-xs text-red-500">Failed to load PDF</p>
+                  <div className="flex flex-col items-center justify-center h-[600px] w-[450px] bg-zinc-900 border border-red-800 p-6 text-center">
+                    <p className="font-mono text-xs text-red-500 mb-2">Failed to load PDF</p>
+                    <p className="font-mono text-[10px] text-zinc-400">Please check the console for details</p>
                   </div>
                 }
               >
                 <Page
                   pageNumber={currentPage}
                   scale={scale}
+                  renderTextLayer={true}
+                  renderAnnotationLayer={true}
                   loading={
                     <div className="flex items-center justify-center h-[600px] bg-zinc-900 border border-zinc-800">
                       <p className="font-mono text-xs text-zinc-500">Loading page...</p>

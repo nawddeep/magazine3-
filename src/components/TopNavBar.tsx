@@ -115,8 +115,8 @@ export default function TopNavBar({ currentView, onViewChange, onSearch, scrollT
 
           <button
             onClick={() => {
-              // Navigate to admin login page instead of directly to admin
-              window.location.pathname = '/admin/login';
+              // Navigate to admin using onViewChange instead of full reload
+              onViewChange('admin');
             }}
             className="transition-all hover:text-[#c3f400]"
             style={{ color: currentView === 'admin' ? 'var(--color-accent)' : 'var(--color-primary)' }}
